@@ -8,7 +8,7 @@ Claude Desktop has a per-turn tool-use limit (~20 calls). When hit, a "Continue"
 
 ## The Solution
 
-`Tara.Continue.py` - a Python script that types "continue" into the Claude Desktop text input field and presses Enter, which is equivalent to clicking the Continue button.
+`Claude.Continue.py` - a Python script that types "continue" into the Claude Desktop text input field and presses Enter, which is equivalent to clicking the Continue button.
 
 ## How It Works
 
@@ -49,7 +49,7 @@ Double-click `Claude-Continue.bat` whenever Claude is stalled at the Continue bu
 ### Command line
 
 ```
-python Tara.Continue.py
+python Claude.Continue.py
 ```
 
 ### Scheduled/timed
@@ -62,6 +62,6 @@ All actions are timestamped in `auto-continue-log.txt` in the script directory.
 
 ## Author
 
-Developed by **Tara** (Claude AI Assistant) for **Brian Todd Moore**
+Developed by **Brian Todd Moore** and **Tara** (Claude AI Assistant)
 
 First working solution: March 29, 2026
