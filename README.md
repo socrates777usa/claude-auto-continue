@@ -2,66 +2,96 @@
 
 **The first known solution for automating the Claude Desktop Windows app's "Continue" button.**
 
-## The Problem
+When Claude Desktop hits its per-turn tool-use limit (~20 calls), a "Continue" button appears and Claude freezes until the user manually clicks it. This interrupts long-running agentic workflows that should run unattended.
 
-Claude Desktop has a per-turn tool-use limit (~20 calls). When hit, a "Continue" button appears and Claude is frozen until the user manually clicks it. This interrupts long-running agentic workflows.
+This project solves that problem.
 
-## The Solution
+---
 
-`Claude.Continue.py` - a Python script that types "continue" into the Claude Desktop text input field and presses Enter, which is equivalent to clicking the Continue button.
+## v11 — AutoHotkey (Recommended)
 
-## How It Works
+`claude-auto-continue.ahk` is the current production solution. It runs silently in the system tray, fires every 30 minutes, and auto-sends "continue" to Claude Desktop.
 
-1. **Finds the window** - Uses `pygetwindow` to find any window titled "Claude" (title-based, not process ID)
-2. **Activates it** - Restores from minimized if needed, brings to foreground
-3. **Clicks the text field** - Calculates position relative to window bounds (center X, 55px from bottom)
-4. **Clears existing text** - Ctrl+A, Delete
-5. **Types "continue"** - Character-by-character via `pyautogui.typewrite()` (real OS-level keystrokes)
-6. **Presses Enter** - Submits the message
+### Features
 
-## Why This Approach
+- **System tray icon** with right-click menu (Send Now, Pause/Resume, View Log, Exit)
+- **Forced window focus** via Win32 `SetForegroundWindow` with the Alt-key trick (bypasses Windows focus-stealing prevention)
+- **Click-target text field** using window-relative coordinates (center-X, bottom minus 55px)
+- **Ctrl+A → Delete → Paste → Enter** sequence for reliable text input
+- **Auto-restores previous window** after sending so your workflow isn't interrupted
+- **Full timestamped logging** to `auto-continue-log.txt`
+- **Hotkeys:** F9 = instant trigger, F10 = pause/resume
+- **Configurable timer** (default: 30 minutes / 1800000ms)
 
-This script was developed through R&D testing **24 different approaches**. Methods that failed:
+### Requirements
 
-- **UI Automation (MSAA/COM)** - Electron reports all element coordinates as (0,0)
-- **AHK ControlFocus/ControlSend** - Electron renders in a single control, no sub-elements
-- **PowerShell SendKeys/SendInput/keybd_event** - Keystrokes don't reach Electron input field from background scripts
-- **ValuePattern.SetValue()** - Text appears visually but app doesn't recognize it internally (React controlled inputs bypass)
-
-**Why pyautogui works:** `typewrite()` sends real OS-level keyboard events. The Electron app processes these as genuine user input, triggering React's onChange handlers. This means the app knows text is present when Enter is pressed.
-
-## Requirements
-
-```
-pip install pyautogui pygetwindow
-```
-
-- Python 3.x
+- [AutoHotkey v2](https://www.autohotkey.com/) (free)
 - Windows 10/11
 - Claude Desktop running
 
-## Usage
+### Usage
 
-### Double-click (recommended)
+1. Install AutoHotkey v2
+2. Double-click `claude-auto-continue.ahk`
+3. Look for the tray icon — it's running
+4. Press **F9** anytime to manually trigger
+5. Press **F10** to pause/resume the timer
 
-Double-click `Claude-Continue.bat` whenever Claude is stalled at the Continue button.
+### Customizing the Timer
 
-### Command line
+Edit the `INTERVAL` variable at the top of the script:
 
+```ahk
+INTERVAL := 1800000  ; 30 minutes (in milliseconds)
 ```
-python Claude.Continue.py
-```
 
-### Scheduled/timed
+Common values: 300000 (5 min), 600000 (10 min), 1800000 (30 min), 3600000 (1 hour)
 
-Wrap in a loop or Windows Task Scheduler for automatic firing at intervals.
+### Customizing the Log Path
 
-## Logging
+Edit the `logPath` variable to point to your preferred location.
 
-All actions are timestamped in `auto-continue-log.txt` in the script directory.
+---
+
+## Legacy: Python + Scheduled Task
+
+The original approach using `pyautogui` and Windows Task Scheduler. Still works but the AHK version is superior for daily use.
+
+### Files
+
+- `Claude.Continue.py` — Python script that types "continue" + Enter
+- `Tara.Continue.py` — Streamlined variant used by scheduled task
+- `Claude-Continue.bat` — One-click launcher
+
+### Why AHK Won
+
+The Python approach works but has limitations:
+- No persistent tray icon or hotkey support
+- Requires Python + pip packages installed
+- Task Scheduler adds complexity
+- No pause/resume capability
+
+AutoHotkey gives us a single self-contained file with native Windows tray integration.
+
+---
+
+## Why This Approach (R&D History)
+
+This script was developed through R&D testing **24 different approaches**. Methods that failed:
+
+- **UI Automation (MSAA/COM)** — Electron reports all element coordinates as (0,0)
+- **AHK ControlFocus/ControlSend** — Electron renders in a single control, no sub-elements
+- **PowerShell SendKeys/SendInput/keybd_event** — Keystrokes don't reach Electron input from background
+- **ValuePattern.SetValue()** — Text appears but React controlled inputs don't register it
+- **Simple WinActivate** — Windows blocks focus-stealing from background processes
+
+**What works:** Real OS-level keystrokes via clipboard paste (`Ctrl+V`) after forcing window focus with the Win32 Alt-key trick (`keybd_event` Alt down/up → `SetForegroundWindow`). The Electron app processes these as genuine user input, triggering React's onChange handlers.
+
+---
 
 ## Author
 
 Developed by **Brian Todd Moore** and **Tara** (Claude AI Assistant)
 
-First working solution: March 29, 2026
+- First working solution: March 29, 2026
+- AHK v11 (current): April 2, 2026
